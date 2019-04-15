@@ -3,15 +3,15 @@ import PhoneAPI from './../../PhoneAPI'
 
 const state = {
   show: process.env.NODE_ENV !== 'production',
-  myPhoneNumber: '###-####',
+  myPhoneNumber: '####-####',
   background: JSON.parse(window.localStorage['gc_background'] || null),
   coque: JSON.parse(window.localStorage['gc_coque'] || null),
-  zoom: window.localStorage['gc_zoom'] || '100%',
+  zoom: window.localStorage['gc_zoom'] || '80%',
   volume: parseFloat(window.localStorage['gc_volume']) || 1,
   mouse: window.localStorage['gc_mouse'] === 'true',
-  lang: window.localStorage['gc_language'] || 'fr_FR',
+  lang: window.localStorage['gc_language'] || 'pt_BR',
   config: {
-    reseau: 'Gannon',
+    reseau: 'B2K Roleplay',
     useFormatNumberFrance: false,
     apps: [],
     themeColor: '#2A56C6',
@@ -147,11 +147,11 @@ const actions = {
     PhoneAPI.closePhone()
   },
   resetPhone ({ dispatch, getters }) {
-    dispatch('setZoon', '100%')
+    dispatch('setZoon', '80%')
     dispatch('setVolume', 1)
     dispatch('setBackground', getters.config.background_default)
     dispatch('setCoque', getters.config.coque_default)
-    dispatch('setLanguage', 'fr_FR')
+    dispatch('setLanguage', 'pt_BR')
   }
 }
 

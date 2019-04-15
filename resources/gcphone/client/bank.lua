@@ -47,3 +47,8 @@ RegisterNetEvent('es:displayBank')
 AddEventHandler('es:displayBank', function(bank)
       setBankBalance(bank)
 end)
+
+RegisterNetEvent('vrp:displayBank')
+AddEventHandler('vrp:displayBank', function(bank)
+      setBankBalance(bank)
+end)

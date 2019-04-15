@@ -1,5 +1,5 @@
 {
-  "reseau": "Gannon",
+  "reseau": "B2K Roleplay",
   "warningMessageCount": 250,
   "themeColor": "#303f9f",
   "colors": [
@@ -35,13 +35,13 @@
 
 
   "background": {
-    "Calvin & Hobbes": "back001.jpg",
-    "Destiny": "back002.jpg",
-    "Stormtrooper": "back003.jpg",
+    "Dunas": "back001.jpg",
+    "Por do Sol": "back002.jpg",
+    "Universe": "back003.jpg",
     "Custom URL": "URL"
   },
   "background_default": {
-    "label": "Calvin & Hobbes",
+    "label": "Dunas",
     "value": "back001.jpg"
   },
 
@@ -59,52 +59,36 @@
 
 
   "serviceCall": [{
-      "display": "Police",
-      "icon": "/html/static/img/icons_app/police.png",
+      "display": "Polícia",
+      "letter": "P",
+      "backgroundColor": "blue",
       "subMenu": [{
-          "title": "Envoyer un message",
-          "eventName": "esx_addons_gcphone:call",
+          "title": "Enviar uma mensagem",
+          "eventName": "vrp_addons_gcphone:call",
           "type": {
-            "number": "police"
-          }
-        },
-        {
-          "title": "Appeler le standard",
-          "eventName": "gcphone:autoCallNumber",
-          "type": {
-            "number": "911"
+            "number": "Policia"
           }
         }
       ]
     },
     {
-      "display": "Ambulance",
+      "display": "Samu",
       "backgroundColor": "red",
       "subMenu": [{
-        "title": "Envoyer un message",
-        "eventName": "esx_addons_gcphone:call",
+        "title": "Enviar uma mensagem",
+        "eventName": "vrp_addons_gcphone:call",
         "type": {
-          "number": "ambulance"
+          "number": "Samu"
         }
       }]
     }
   ],
 
-  "defaultContacts": [{
-      "number": "ambulance",
-      "display": "Ambulance",
-      "icon": "/html/static/img/icons_app/bank.png"
-    },
-    {
-      "number": "police",
-      "display": "Police",
-      "backgroundColor": "blue",
-      "letter": "J"
-    }
-  ],
+  "defaultContacts": [],
 
   "apps": [{
       "name": "Twitter",
+      "pt_BR__name": "Twitter",
       "fr_FR__name": "Twitter",
       "en_US__name": "Twitter",
       "de_DE__name": "Twitter",
@@ -116,6 +100,7 @@
     },
     {
       "name": "Mobilphone",
+      "pt_BR__name": "Telefone",
       "fr_FR__name": "Téléphone",
       "cs_CZ__name": "Telefon",
       "en_US__name": "Phone",
@@ -128,6 +113,7 @@
     },
     {
       "name": "Messages",
+      "pt_BR__name": "Mensagens",
       "fr_FR__name": "Messages",
       "en_US__name": "Messages",
       "cs_CZ__name": "Zprávy",
@@ -141,6 +127,7 @@
     },
     {
       "name": "Contacts",
+      "pt_BR__name": "Contatos",
       "fr_FR__name": "Contacts",
       "en_US__name": "Contacts",
       "cs_CZ__name": "Kontakty",
@@ -153,6 +140,7 @@
     },
     {
       "name": "Settings",
+      "pt_BR__name": "Config",
       "fr_FR__name": "Paramètres",
       "en_US__name": "System",
       "cs_CZ__name": "Nastavení",
@@ -165,6 +153,7 @@
     },
     {
       "name": "Bank",
+      "pt_BR__name": "Banco",
       "fr_FR__name": "Banque",
       "en_US__name": "Bankmanager",
       "cs_CZ__name": "Banka",
@@ -177,6 +166,7 @@
     },
     {
       "name": "Bourse",
+      "pt_BR__name": "Bolsa",
       "fr_FR__name": "Bourse",
       "cs_CZ__name": "Burza",
       "en_US__name": "Stock Market",
@@ -187,6 +177,7 @@
     },
     {
       "name": "Camera",
+      "pt_BR__name": "Camera",
       "fr_FR__name": "Photo",
       "cs_CZ__name": "Fotoaparát",
       "en_US__name": "Camera",
@@ -198,6 +189,7 @@
     },
     {
       "name": "Dark Chat",
+      "pt_BR__name": "Deep Web",
       "fr_FR__name": "Dark Chat",
       "en_US__name": "Dark Chat",
       "de_DE__name": "Dark Net",
@@ -213,9 +205,7 @@
     }
   ],
   "language": {
-
-     "fr_FR": {
-      "NAME": "Français",
+    "fr_FR": {      "NAME": "Français",
       "PHONE_WARNING_MESSAGE": "Saturation mémoires !",
       "PHONE_WARNING_MESSAGE_MESS": "messages",
       "CONFIRM": "Accepter",
