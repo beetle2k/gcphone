@@ -1,3 +1,87 @@
+-- DEFAULT VRP
+local Tunnel = module("vrp", "lib/Tunnel")
+local Proxy = module("vrp", "lib/Proxy")
+vRPMySQL = module("vrp_mysql", "MySQL")
+
+vRP = Proxy.getInterface("vRP")
+
+-- queries
+vRPMySQL.createCommand("vRP/gcphone_tables",[[
+CREATE TABLE IF NOT EXISTS `phone_app_chat` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `channel` varchar(20) NOT NULL,
+  `message` varchar(255) NOT NULL,
+  `time` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `phone_calls` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `owner` varchar(10) NOT NULL COMMENT 'Num tel proprio',
+  `num` varchar(10) NOT NULL COMMENT 'Num reférence du contact',
+  `incoming` int(11) NOT NULL COMMENT 'Défini si on est à l''origine de l''appels',
+  `time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `accepts` int(11) NOT NULL COMMENT 'Appels accepter ou pas',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=122 DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `phone_messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `transmitter` varchar(10) NOT NULL,
+  `receiver` varchar(10) NOT NULL,
+  `message` varchar(255) NOT NULL DEFAULT '0',
+  `time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `isRead` int(11) NOT NULL DEFAULT 0,
+  `owner` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=106 DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `phone_users_contacts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `identifier` varchar(60) CHARACTER SET utf8mb4 DEFAULT NULL,
+  `number` varchar(10) CHARACTER SET utf8mb4 DEFAULT NULL,
+  `display` varchar(64) CHARACTER SET utf8mb4 NOT NULL DEFAULT '-1',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `twitter_accounts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) CHARACTER SET utf8 NOT NULL DEFAULT '0',
+  `password` varchar(50) COLLATE utf8mb4_bin NOT NULL DEFAULT '0',
+  `avatar_url` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS `twitter_tweets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `authorId` int(11) NOT NULL,
+  `realUser` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `message` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `likes` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `FK_twitter_tweets_twitter_accounts` (`authorId`),
+  CONSTRAINT `FK_twitter_tweets_twitter_accounts` FOREIGN KEY (`authorId`) REFERENCES `twitter_accounts` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=170 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `twitter_likes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `authorId` int(11) DEFAULT NULL,
+  `tweetId` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK_twitter_likes_twitter_accounts` (`authorId`),
+  KEY `FK_twitter_likes_twitter_tweets` (`tweetId`),
+  CONSTRAINT `FK_twitter_likes_twitter_accounts` FOREIGN KEY (`authorId`) REFERENCES `twitter_accounts` (`id`),
+  CONSTRAINT `FK_twitter_likes_twitter_tweets` FOREIGN KEY (`tweetId`) REFERENCES `twitter_tweets` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=137 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+]])
+
+-- init tables
+print("[B2K] init gcphone tables")
+vRPMySQL.execute("vRP/gcphone_tables")
+
 --====================================================================================
 -- #Author: Jonathan D @Gannon
 -- #Version 2.0
@@ -5,11 +89,11 @@
 
 math.randomseed(os.time()) 
 
---- Pour les numero du style XXX-XXXX
+--- Pour les numero du style Xxxx-XXXX
 function getPhoneRandomNumber()
-    local numBase0 = math.random(100,999)
+    local numBase0 = math.random(1000,9999)
     local numBase1 = math.random(0,9999)
-    local num = string.format("%03d-%04d", numBase0, numBase1 )
+    local num = string.format("%04d-%04d", numBase0, numBase1 )
 	return num
 end
 
@@ -46,7 +130,7 @@ end)
 --====================================================================================
 --  Utils
 --====================================================================================
-function getSourceFromIdentifier(identifier, cb)
+--[[function getSourceFromIdentifier(identifier, cb)
     TriggerEvent("es:getPlayers", function(users)
         for k , user in pairs(users) do
             if (user.getIdentifier ~= nil and user.getIdentifier() == identifier) or (user.identifier == identifier) then
@@ -56,22 +140,23 @@ function getSourceFromIdentifier(identifier, cb)
         end
     end)
     cb(nil)
-end
+end]]
+
 function getNumberPhone(identifier)
-    local result = MySQL.Sync.fetchAll("SELECT users.phone_number FROM users WHERE users.identifier = @identifier", {
+    local result = MySQL.Sync.fetchAll("SELECT vrp_user_identities.phone FROM vrp_user_identities WHERE vrp_user_identities.user_id = @identifier", {
         ['@identifier'] = identifier
     })
     if result[1] ~= nil then
-        return result[1].phone_number
+        return result[1].phone
     end
     return nil
 end
 function getIdentifierByPhoneNumber(phone_number) 
-    local result = MySQL.Sync.fetchAll("SELECT users.identifier FROM users WHERE users.phone_number = @phone_number", {
+    local result = MySQL.Sync.fetchAll("SELECT vrp_user_identities.user_id FROM vrp_user_identities WHERE vrp_user_identities.phone = @phone_number", {
         ['@phone_number'] = phone_number
     })
     if result[1] ~= nil then
-        return result[1].identifier
+        return result[1].user_id
     end
     return nil
 end
@@ -98,7 +183,7 @@ function getOrGeneratePhoneNumber (sourcePlayer, identifier, cb)
             myPhoneNumber = getPhoneRandomNumber()
             local id = getIdentifierByPhoneNumber(myPhoneNumber)
         until id == nil
-        MySQL.Async.insert("UPDATE users SET phone_number = @myPhoneNumber WHERE identifier = @identifier", { 
+        MySQL.Async.insert("UPDATE vrp_user_identities SET phone = @myPhoneNumber WHERE user_id = @identifier", { 
             ['@myPhoneNumber'] = myPhoneNumber,
             ['@identifier'] = identifier
         }, function ()
@@ -161,21 +246,21 @@ end
 RegisterServerEvent('gcPhone:addContact')
 AddEventHandler('gcPhone:addContact', function(display, phoneNumber)
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer}) --getPlayerID(source)
     addContact(sourcePlayer, identifier, phoneNumber, display)
 end)
 
 RegisterServerEvent('gcPhone:updateContact')
 AddEventHandler('gcPhone:updateContact', function(id, display, phoneNumber)
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer}) --getPlayerID(source)
     updateContact(sourcePlayer, identifier, id, phoneNumber, display)
 end)
 
 RegisterServerEvent('gcPhone:deleteContact')
 AddEventHandler('gcPhone:deleteContact', function(id)
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer}) --getPlayerID(source)
     deleteContact(sourcePlayer, identifier, id)
 end)
 
@@ -183,7 +268,7 @@ end)
 --  Messages
 --====================================================================================
 function getMessages(identifier)
-    local result = MySQL.Sync.fetchAll("SELECT phone_messages.* FROM phone_messages LEFT JOIN users ON users.identifier = @identifier WHERE phone_messages.receiver = users.phone_number", {
+    local result = MySQL.Sync.fetchAll("SELECT phone_messages.* FROM phone_messages LEFT JOIN vrp_user_identities ON vrp_user_identities.user_id = @identifier WHERE phone_messages.receiver = vrp_user_identities.phone", {
          ['@identifier'] = identifier
     })
     return result
@@ -198,7 +283,7 @@ end)
 function _internalAddMessage(transmitter, receiver, message, owner)
     local Query = "INSERT INTO phone_messages (`transmitter`, `receiver`,`message`, `isRead`,`owner`) VALUES(@transmitter, @receiver, @message, @isRead, @owner);"
     local Query2 = 'SELECT * from phone_messages WHERE `id` = @id;'
-	local Parameters = {
+    local Parameters = {
         ['@transmitter'] = transmitter,
         ['@receiver'] = receiver,
         ['@message'] = message,
@@ -217,12 +302,13 @@ function addMessage(source, identifier, phone_number, message)
     local myPhone = getNumberPhone(identifier)
     if otherIdentifier ~= nil then 
         local tomess = _internalAddMessage(myPhone, phone_number, message, 0)
-        getSourceFromIdentifier(otherIdentifier, function (osou)
+        --getSourceFromIdentifier(otherIdentifier, function (osou)
+            local osou = vRP.getUserSource({otherIdentifier})
             if tonumber(osou) ~= nil then 
                 -- TriggerClientEvent("gcPhone:allMessage", osou, getMessages(otherIdentifier))
                 TriggerClientEvent("gcPhone:receiveMessage", tonumber(osou), tomess)
             end
-        end) 
+        --end) 
     end
     local memess = _internalAddMessage(phone_number, myPhone, message, 1)
     TriggerClientEvent("gcPhone:receiveMessage", sourcePlayer, memess)
@@ -259,7 +345,7 @@ end
 RegisterServerEvent('gcPhone:sendMessage')
 AddEventHandler('gcPhone:sendMessage', function(phoneNumber, message)
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     addMessage(sourcePlayer, identifier, phoneNumber, message)
 end)
 
@@ -271,7 +357,7 @@ end)
 RegisterServerEvent('gcPhone:deleteMessageNumber')
 AddEventHandler('gcPhone:deleteMessageNumber', function(number)
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     deleteAllMessageFromPhoneNumber(sourcePlayer,identifier, number)
     -- TriggerClientEvent("gcphone:allMessage", sourcePlayer, getMessages(identifier))
 end)
@@ -279,20 +365,20 @@ end)
 RegisterServerEvent('gcPhone:deleteAllMessage')
 AddEventHandler('gcPhone:deleteAllMessage', function()
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     deleteAllMessage(identifier)
 end)
 
 RegisterServerEvent('gcPhone:setReadMessageNumber')
 AddEventHandler('gcPhone:setReadMessageNumber', function(num)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     setReadMessageNumber(identifier, num)
 end)
 
 RegisterServerEvent('gcPhone:deleteALL')
 AddEventHandler('gcPhone:deleteALL', function()
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     deleteAllMessage(identifier)
     deleteAllContact(identifier)
     appelsDeleteAllHistorique(identifier)
@@ -334,7 +420,7 @@ function saveAppels (appelInfo)
     if appelInfo.is_valid == true then
         local num = appelInfo.transmitter_num
         if appelInfo.hidden == true then
-            mun = "###-####"
+            mun = "####-####"
         end
         MySQL.Async.insert("INSERT INTO phone_calls (`owner`, `num`,`incoming`, `accepts`) VALUES(@owner, @num, @incoming, @accepts)", {
             ['@owner'] = appelInfo.receiver_num,
@@ -356,7 +442,7 @@ end
 RegisterServerEvent('gcPhone:getHistoriqueCall')
 AddEventHandler('gcPhone:getHistoriqueCall', function()
     local sourcePlayer = tonumber(source)
-    local srcIdentifier = getPlayerID(source)
+    local srcIdentifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     local srcPhone = getNumberPhone(srcIdentifier)
     sendHistoriqueCall(sourcePlayer, num)
 end)
@@ -384,7 +470,7 @@ AddEventHandler('gcPhone:internal_startCall', function(source, phone_number, rtc
     lastIndexCall = lastIndexCall + 1
 
     local sourcePlayer = tonumber(source)
-    local srcIdentifier = getPlayerID(source)
+    local srcIdentifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
 
     local srcPhone = ''
     print(json.encode(extraData))
@@ -411,7 +497,8 @@ AddEventHandler('gcPhone:internal_startCall', function(source, phone_number, rtc
     
 
     if is_valid == true then
-        getSourceFromIdentifier(destPlayer, function (srcTo)
+        --getSourceFromIdentifier(destPlayer, function (srcTo)
+            local srcTo = vRP.getUserSource({destPlayer})
             if srcTo ~= nill then
                 AppelsEnCours[indexCall].receiver_src = srcTo
                 TriggerEvent('gcPhone:addCall', AppelsEnCours[indexCall])
@@ -421,7 +508,7 @@ AddEventHandler('gcPhone:internal_startCall', function(source, phone_number, rtc
                 TriggerEvent('gcPhone:addCall', AppelsEnCours[indexCall])
                 TriggerClientEvent('gcPhone:waitingCall', sourcePlayer, AppelsEnCours[indexCall], true)
             end
-        end)
+        --end)
     else
         TriggerEvent('gcPhone:addCall', AppelsEnCours[indexCall])
         TriggerClientEvent('gcPhone:waitingCall', sourcePlayer, AppelsEnCours[indexCall], true)
@@ -497,7 +584,7 @@ end)
 RegisterServerEvent('gcPhone:appelsDeleteHistorique')
 AddEventHandler('gcPhone:appelsDeleteHistorique', function (numero)
     local sourcePlayer = tonumber(source)
-    local srcIdentifier = getPlayerID(source)
+    local srcIdentifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     local srcPhone = getNumberPhone(srcIdentifier)
     MySQL.Sync.execute("DELETE FROM phone_calls WHERE `owner` = @owner AND `num` = @num", {
         ['@owner'] = srcPhone,
@@ -515,74 +602,37 @@ end
 RegisterServerEvent('gcPhone:appelsDeleteAllHistorique')
 AddEventHandler('gcPhone:appelsDeleteAllHistorique', function ()
     local sourcePlayer = tonumber(source)
-    local srcIdentifier = getPlayerID(source)
+    local srcIdentifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     appelsDeleteAllHistorique(srcIdentifier)
 end)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 --====================================================================================
 --  OnLoad
 --====================================================================================
-AddEventHandler('es:playerLoaded',function(source)
+--AddEventHandler('es:playerLoaded',function(source)
+AddEventHandler("vRP:playerSpawn",function(user_id, source, first_spawn)
+  if first_spawn then
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
-    getOrGeneratePhoneNumber(sourcePlayer, identifier, function (myPhoneNumber)
+    getOrGeneratePhoneNumber(sourcePlayer, user_id, function (myPhoneNumber)
         TriggerClientEvent("gcPhone:myPhoneNumber", sourcePlayer, myPhoneNumber)
-        TriggerClientEvent("gcPhone:contactList", sourcePlayer, getContacts(identifier))
-        TriggerClientEvent("gcPhone:allMessage", sourcePlayer, getMessages(identifier))
+        TriggerClientEvent("gcPhone:contactList", sourcePlayer, getContacts(user_id))
+        TriggerClientEvent("gcPhone:allMessage", sourcePlayer, getMessages(user_id))
+        TriggerClientEvent('vrp:displayBank', sourcePlayer, vRP.getBankMoney({user_id}))
     end)
+  end
 end)
 
 -- Just For reload
 RegisterServerEvent('gcPhone:allUpdate')
 AddEventHandler('gcPhone:allUpdate', function()
     local sourcePlayer = tonumber(source)
-    local identifier = getPlayerID(source)
+    local identifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
     local num = getNumberPhone(identifier)
     TriggerClientEvent("gcPhone:myPhoneNumber", sourcePlayer, num)
     TriggerClientEvent("gcPhone:contactList", sourcePlayer, getContacts(identifier))
     TriggerClientEvent("gcPhone:allMessage", sourcePlayer, getMessages(identifier))
     TriggerClientEvent('gcPhone:getBourse', sourcePlayer, getBourse())
+    TriggerClientEvent('vrp:displayBank', sourcePlayer, vRP.getBankMoney({user_id}))
     sendHistoriqueCall(sourcePlayer, num)
 end)
 
@@ -653,7 +703,7 @@ function onCallFixePhone (source, phone_number, rtcOffer, extraData)
         phone_number = string.sub(phone_number, 2)
     end
     local sourcePlayer = tonumber(source)
-    local srcIdentifier = getPlayerID(source)
+    local srcIdentifier = vRP.getUserId({sourcePlayer})--getPlayerID(source)
 
     local srcPhone = ''
     if extraData ~= nil and extraData.useNumber ~= nil then

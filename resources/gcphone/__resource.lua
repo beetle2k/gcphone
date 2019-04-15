@@ -1,3 +1,4 @@
+dependency "vrp"
 
 ui_page 'html/index.html'
 
@@ -63,6 +64,7 @@ client_script {
 
 server_script {
 	'@mysql-async/lib/MySQL.lua',
+	'@vrp/lib/utils.lua',
 	"config.lua",
 	"server/server.lua",
 
