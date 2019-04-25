@@ -937,6 +937,6 @@
         ["%s mês atrás", "%s meses atrás"],
         ["%s ano atrás", "%s anos atrás"]
       ]
-    },
+    }
   }
 }
