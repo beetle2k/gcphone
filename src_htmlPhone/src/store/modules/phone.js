@@ -5,6 +5,7 @@ const state = {
   show: process.env.NODE_ENV !== 'production',
   tempoHide: false,
   myPhoneNumber: '###-####',
+  background: JSON.parse(window.localStorage['gc_background'] || null),
   coque: JSON.parse(window.localStorage['gc_coque'] || null),
   zoom: window.localStorage['gc_zoom'] || '80%',
   volume: parseFloat(window.localStorage['gc_volume']) || 1,

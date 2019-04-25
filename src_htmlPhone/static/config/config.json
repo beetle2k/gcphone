@@ -209,6 +209,9 @@
     }
   ],
   "language": {
+    "fr_FR": {
+      "NAME": "Français",      "PHONE_WARNING_MESSAGE": "Saturation mémoires !",
+      "PHONE_WARNING_MESSAGE": "Saturation mémoires !",
       "PHONE_WARNING_MESSAGE_MESS": "messages",
       "CONFIRM": "Accepter",
       "CANCEL": "Annuler",
